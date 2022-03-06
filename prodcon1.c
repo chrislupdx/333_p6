@@ -8,6 +8,7 @@
 typedef struct {
     char * buffer;
     char * text;
+    //ordinal_count?
 } myargs_t;
 
 pthread_mutex_t mutex; //this is gonna need a better name
@@ -19,26 +20,19 @@ int main()
     int count = 10;
     myargs_t args;
 
-    //allocate a 256 char buffer
     char buffer[256];
-    char input[256];
+    char input[256]; 
 
-    //for each text, make a custom struct?
-    //put eeach text into a 2
-    int txtcount = 4; 
+    //WHERE DO WE PUT THIS into producer_f?
+    int txtcount = 10;
     for(int i = 0; i < txtcount; i++)
     {
         FILE * pFile;
-
         char fform[50] = "txts/in"; //this is  missing the # that we may iterate through
         char curr[50];
         snprintf(curr, 10, "%d", i);
-        
         strcat(fform, curr);
-        //printf("fform is |%s|\n", fform);
-        
         pFile = fopen (fform, "r");
-        //figure out how to dynamically read all ten files 
         if(!pFile)
         {
             perror("Error opening file");
@@ -46,7 +40,7 @@ int main()
         }
         if( fgets(input, 256, pFile) != NULL)
         {
-            printf("printing: %s\n", input);
+            printf("printing file %d: %s\n", i, input);
         }
     }
 
@@ -55,7 +49,6 @@ int main()
     pthread_t consumer[count];
 
     //we need to structure our solution such that there's mutual exclusion on the buffer 
-
     for(int i = 0; i < count; i++)
     {
         //what are we putting where exactly?
