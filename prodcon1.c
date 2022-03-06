@@ -28,49 +28,52 @@ int main()
     pthread_t producer[count];
     pthread_t consumer[count];
 
+    myargs_t args = { *buffer, input};  //will it work in this scope?
+    args.count = 0;
     for(int i = 0; i < count; i++)
     {
-        myargs_t args = { *buffer, input, i};  //will it work in this scope?
         pthread_create(&producer[i], NULL, producer_f, &args); //perhaps args_struct instead of a single string buffer?
-        //pthread_create(&producer[i], NULL, consumer_f, &args);
     }
 
     //what order do we wait for these
     for(int i = 0; i < count; i++)
     {
         pthread_join(producer[i], NULL);
-        //pthread_join(consumer[i], NULL);
     }
     return 1; 
 }
 
+//ID THE race condition
 //copies a text into the buffer, it should add a termination char at the end of the text
 void *producer_f(void * arg)
 {
+    pthread_mutex_lock(&mutex);
     myargs_t *args = (myargs_t *) arg;
-    //open one file
-        FILE * pFile;
-        char fform[50] = "txts/in"; //this is  missing the # that we may iterate through
-        char curr[50];
-        //snprintf(curr, 10, "%d", i);
-        snprintf(curr, 10, "%d", args->count);
+    FILE * pFile;
+    char fform[50] = "txts/in"; //this is  missing the # that we may iterate through
+    char curr[50];
+    snprintf(curr, 10, "%d", args->count);
 
-        strcat(fform, curr);
-        pFile = fopen (fform, "r");
-        if(!pFile)
-        {
-            perror("Error opening file");
-            return NULL;
-        }
-        if(fgets(args->text, 256, pFile) != NULL) //TODO mad here
-        {
-            printf("printing file %d: %s\n\n", args->count, args->text);
-            //can we just strcpy(args.buffer, input)
-        }
-    
+    strcat(fform, curr);
+    pFile = fopen (fform, "r");
+    if(!pFile)
+    {
+        perror("Error opening file");
+        return NULL;
+    }
+    if(fgets(args->text, 256, pFile) != NULL)
+    {
+        //printf("printing file %d: %s\n\n", args->count, args->text);
+        printf("args->count is %d: text is: %s\n\n", args->count, args->text);
+        //write the contents into buffer
+        //can we just strcpy(args.buffer, input)
+    }
+    //pthread_mutex_unlock(&mutex);
     //read the contents from the file up to 256 chars
     //write the contents into the bufffer
     //write a string termination char to the end of buffer
+    (args->count)++;
+    pthread_mutex_unlock(&mutex);
     return NULL;
 }
 
