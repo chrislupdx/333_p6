@@ -1,4 +1,4 @@
-//this is prodcon1.c
+//this is prodcon2.c
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -26,7 +26,7 @@ int main()
 
     myargs_t args;
     args.buffer = buffer;
-    args.text = input; //what is this for
+    args.text = input;
     args.count = 0;
 
     for(int i = 0; i < count; i++)
@@ -43,6 +43,7 @@ int main()
 }
 void *producer_f(void * arg)
 {
+    pthread_mutex_lock(&producer_mutex);
     myargs_t *args = (myargs_t *) arg;
     FILE * pFile;
     char fform[50] = "txts/in"; //this is  missing the # that we may iterate through
@@ -61,12 +62,15 @@ void *producer_f(void * arg)
         args->buffer[256] = '\0';
     }
     (args->count)++;
+    pthread_mutex_unlock(&producer_mutex);
     return NULL;
 }
 void *consumer_f(void * arg)
 {
+    pthread_mutex_lock(&producer_mutex);
     myargs_t * args = (myargs_t *) arg;
     //printf("count is %d buffer is %s \n", args->count, args->buffer);
     printf("%s \n", args->buffer);
+    pthread_mutex_unlock(&producer_mutex);
     return NULL;
 }
