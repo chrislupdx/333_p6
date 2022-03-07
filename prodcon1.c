@@ -11,50 +11,54 @@ typedef struct {
     int count;
 } myargs_t;
 
-pthread_mutex_t mutex; //this is gonna need a better name
+pthread_mutex_t producer_mutex; 
+pthread_mutex_t consumer_mutex; 
 void *producer_f(void * arg);
 void *consumer_f(void * arg);
 
 int main()
 {
     int count = 10;
-
-    char * buffer[256]; //we might need to make this a pointer
-    char input[256]; 
-
-    //WHERE DO WE PUT THIS into producer_f?
-    int txtcount = 10;
-
+    int rc = pthread_mutex_init(&consumer_mutex, NULL);
+    int rc2 = pthread_mutex_init(&producer_mutex, NULL);
+    //char * buffer[256]; //we might need to make this a pointer
+    char * buffer = (char *)malloc(256 * sizeof(char));  //this is what we're going to pass back and forth between producer_f and consumer_f
+    char * input = (char *)malloc(256 * sizeof(char));  //this is used to 
     pthread_t producer[count];
     pthread_t consumer[count];
 
-    myargs_t args = { *buffer, input};  //will it work in this scope?
+    myargs_t args;
+    args.buffer = buffer;
+    args.text = input; //what is this for
     args.count = 0;
+    
+    //i'm not sure how how to implement the producer/consumer pattern
+        //TODO this calls for condition variables (if buffer has content)
     for(int i = 0; i < count; i++)
     {
-        pthread_create(&producer[i], NULL, producer_f, &args); //perhaps args_struct instead of a single string buffer?
+        pthread_create(&producer[i], NULL, producer_f, &args);
+        //printf("outside of creates, args->buffer is: %s \n", args.buffer);
+        //pthread_create(&consumer[i], NULL, consumer_f, &args);
     }
-
-    //what order do we wait for these
+    //should consumer get its own separate join loop
     for(int i = 0; i < count; i++)
     {
         pthread_join(producer[i], NULL);
+        //pthread_join(consumer[i], NULL);
     }
     return 1; 
 }
-
-//ID THE race condition
 //copies a text into the buffer, it should add a termination char at the end of the text
 void *producer_f(void * arg)
 {
-    pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&producer_mutex);
     myargs_t *args = (myargs_t *) arg;
     FILE * pFile;
     char fform[50] = "txts/in"; //this is  missing the # that we may iterate through
     char curr[50];
     snprintf(curr, 10, "%d", args->count);
-
     strcat(fform, curr);
+    //printf("ffrom is %s\n", fform);
     pFile = fopen (fform, "r");
     if(!pFile)
     {
@@ -63,24 +67,25 @@ void *producer_f(void * arg)
     }
     if(fgets(args->text, 256, pFile) != NULL)
     {
-        //printf("printing file %d: %s\n\n", args->count, args->text);
-        printf("args->count is %d: text is: %s\n\n", args->count, args->text);
-        //write the contents into buffer
-        //can we just strcpy(args.buffer, input)
+        strncpy(args->buffer, args->text, 256); 
+        //shove a \0 at the end
+        args->buffer[256] = '\0';
+        printf("args->count is %d, args->buff: %s\n",args->count, args->buffer);
     }
-    //pthread_mutex_unlock(&mutex);
-    //read the contents from the file up to 256 chars
-    //write the contents into the bufffer
-    //write a string termination char to the end of buffer
     (args->count)++;
-    pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&producer_mutex);
     return NULL;
 }
-
 //should read the buffer, print the contents to stdout, then exit
 void *consumer_f(void * arg)
 {
+    pthread_mutex_lock(&consumer_mutex);
+    myargs_t * args = (myargs_t *) arg;
+    //printf("consumer start \n");
+    //printf("count is %d buffer is %s \n", args->count, args->buffer);
     //prints the buffer out
     //then clears it?
+    //pthread_mutex_unlock(&consumer_mutex);
+    pthread_mutex_unlock(&consumer_mutex);
     return NULL;
 }
