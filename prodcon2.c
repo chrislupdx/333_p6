@@ -13,8 +13,7 @@ pthread_mutex_t producer_mutex;
 //pthread_mutex_t consumer_mutex; 
 pthread_cond_t  fill = PTHREAD_COND_INITIALIZER; //DOES THIS HAVE A DONE VAR INSDIE IT
 pthread_cond_t  empty = PTHREAD_COND_INITIALIZER; //DOES THIS HAVE A DONE VAR INSDIE IT
-//figure out the states we can toggle in cond_t
-
+//for 10 threads of prod+consume each, how much should our semaphore be init-ed to
 void *producer_f(void * arg);
 void *consumer_f(void * arg);
 
@@ -55,7 +54,6 @@ void *producer_f(void * arg)
     //while the buffer is full, wait.
     while(strlen(args->buffer) > 0)
     {
-        //printf("inside while arg->buffer %s\n", args->buffer);
         pthread_cond_wait(&empty, &producer_mutex);
     }
     FILE * pFile;

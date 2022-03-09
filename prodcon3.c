@@ -1,32 +1,30 @@
-//this is prodcon2.c
+//this is prodcon3.c
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <semaphore.h>
 typedef struct {
     char * buffer;
     char * text;
     int count;
 } myargs_t;
-pthread_mutex_t producer_mutex; 
-pthread_mutex_t consumer_mutex; 
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER; //DOES THIS HAVE A DONE VAR INSDIE IT:w
-//figure out the states we can toggle in cond_t
-
 void *producer_f(void * arg);
 void *consumer_f(void * arg);
-
+sem_t empty;
+sem_t full;
+sem_t mutex;
 int main()
 {
     int count = 10;
-    int rc = pthread_mutex_init(&consumer_mutex, NULL);
-    int rc2 = pthread_mutex_init(&producer_mutex, NULL);
     char * buffer = (char *)malloc(256 * sizeof(char));  //this is what we're going to pass back and forth between producer_f and consumer_f
     char * input = (char *)malloc(256 * sizeof(char));  //this is used to 
     pthread_t producer[count];
     pthread_t consumer[count];
-
+    sem_init(&empty, 0, 1); //what hsould we init empty to
+    sem_init(&full, 0, 0); //what should we init full to
+    sem_init(&mutex, 0, 1);
     myargs_t args;
     args.buffer = buffer;
     args.text = input;
@@ -35,9 +33,6 @@ int main()
     for(int i = 0; i < count; i++)
     {
         pthread_create(&producer[i], NULL, producer_f, &args);
-        //signal to the consumer when the buffer is ready
-    
-        //force consumer to wait until buffer is filled?
         pthread_create(&consumer[i], NULL, consumer_f, &args);
     }
     for(int i = 0; i < count; i++)
@@ -49,7 +44,8 @@ int main()
 }
 void *producer_f(void * arg)
 {
-    pthread_mutex_lock(&producer_mutex);
+    sem_wait(&empty);
+    sem_wait(&mutex);
     myargs_t *args = (myargs_t *) arg;
     FILE * pFile;
     char fform[50] = "txts/in"; //this is  missing the # that we may iterate through
@@ -68,15 +64,19 @@ void *producer_f(void * arg)
         args->buffer[256] = '\0';
     }
     (args->count)++;
-    pthread_mutex_unlock(&producer_mutex);
+    sem_post(&mutex);
+    sem_post(&full);
+
     return NULL;
 }
 void *consumer_f(void * arg)
 {
-    pthread_mutex_lock(&producer_mutex);
+    sem_wait(&full);
+    sem_wait(&mutex);
     myargs_t * args = (myargs_t *) arg;
-    //printf("count is %d buffer is %s \n", args->count, args->buffer);
     printf("%s \n", args->buffer);
-    pthread_mutex_unlock(&producer_mutex);
+    args->buffer[0] = 0;
+    sem_post(&mutex);
+    sem_post(&empty);
     return NULL;
 }
