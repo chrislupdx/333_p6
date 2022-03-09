@@ -10,17 +10,14 @@ typedef struct {
     int count;
 } myargs_t;
 pthread_mutex_t producer_mutex; 
-//pthread_mutex_t consumer_mutex; 
 pthread_cond_t  fill = PTHREAD_COND_INITIALIZER; //DOES THIS HAVE A DONE VAR INSDIE IT
 pthread_cond_t  empty = PTHREAD_COND_INITIALIZER; //DOES THIS HAVE A DONE VAR INSDIE IT
-//for 10 threads of prod+consume each, how much should our semaphore be init-ed to
 void *producer_f(void * arg);
 void *consumer_f(void * arg);
 
 int main()
 {
     int count = 10;
-    //int rc = pthread_mutex_init(&consumer_mutex, NULL);
     int rc2 = pthread_mutex_init(&producer_mutex, NULL);
     char * buffer = (char *)malloc(256 * sizeof(char));  //this is what we're going to pass back and forth between producer_f and consumer_f
     char * input = (char *)malloc(256 * sizeof(char));  //this is used to 
@@ -35,9 +32,6 @@ int main()
     for(int i = 0; i < count; i++)
     {
         pthread_create(&producer[i], NULL, producer_f, &args);
-        //signal to the consumer when the buffer is ready
-    
-        //force consumer to wait until buffer is filled?
         pthread_create(&consumer[i], NULL, consumer_f, &args);
     }
     for(int i = 0; i < count; i++)
@@ -51,7 +45,6 @@ void *producer_f(void * arg)
 {
     pthread_mutex_lock(&producer_mutex);
     myargs_t *args = (myargs_t *) arg;
-    //while the buffer is full, wait.
     while(strlen(args->buffer) > 0)
     {
         pthread_cond_wait(&empty, &producer_mutex);
@@ -82,7 +75,6 @@ void *consumer_f(void * arg)
 {
     pthread_mutex_lock(&producer_mutex);
     myargs_t * args = (myargs_t *) arg;
-    //while the buffer is empty, wait
     while(strlen(args->buffer) == 0) 
     {
         pthread_cond_wait(&fill, &producer_mutex);
